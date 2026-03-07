@@ -68,7 +68,10 @@ func SendAlerts(alerts models.SecEvent, backendURL string) error {
 
 func SendRule(toolname string, markdownContents string, backendBaseURL string) error {
 	payload := RulePayload{Contents: markdownContents}
-	jsonData, _ := json.Marshal(payload)
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to pack rule JSON: %w", err)
+	}
 
 	targetURL, err := backendEndpointURL(backendBaseURL, "/generate/rules")
 	if err != nil {
@@ -76,18 +79,31 @@ func SendRule(toolname string, markdownContents string, backendBaseURL string) e
 	}
 	targetURL = fmt.Sprintf("%s?toolname=%s", targetURL, url.QueryEscape(toolname))
 
-	req, _ := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create rule request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 1200 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send rule request to %s: %w", targetURL, err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("backend rejected rule with status %d", resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read rule response from %s: %w", targetURL, err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf(
+			"backend rejected rule request POST %s with status %d: %s",
+			targetURL,
+			resp.StatusCode,
+			strings.TrimSpace(string(body)),
+		)
 	}
 	return nil
 }
@@ -97,17 +113,23 @@ func GenerateSummary(projectPath string, backendBaseURL string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	targetURL = fmt.Sprintf("%s?path=%s", targetURL, url.QueryEscape(projectPath))
 
-	req, err := http.NewRequest("GET", targetURL, nil)
+	payload := map[string]string{"path": projectPath}
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to pack summary JSON: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 1200 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to send summary request to %s: %w", targetURL, err)
 	}
 	defer resp.Body.Close()
 
@@ -117,7 +139,12 @@ func GenerateSummary(projectPath string, backendBaseURL string) (string, error) 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("backend rejected summary request with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return "", fmt.Errorf(
+			"backend rejected summary request POST %s with status %d: %s",
+			targetURL,
+			resp.StatusCode,
+			strings.TrimSpace(string(body)),
+		)
 	}
 
 	return strings.TrimSpace(string(body)), nil
@@ -135,5 +162,6 @@ func backendEndpointURL(baseURL, endpointPath string) (string, error) {
 	}
 
 	parsed.Path = path.Join(parsed.Path, endpointPath)
+	fmt.Printf("Constructed backend URL: %s\n", parsed.String())
 	return parsed.String(), nil
 }
