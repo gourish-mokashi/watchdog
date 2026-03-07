@@ -5,70 +5,131 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 )
 
-type ReadRequest struct {
-	Path string `json:"path"`
+type WriteRequest struct{
+	Contents string `json:"content"`
 }
 
-// Check WriteRequest while you are at it too!
-type WriteRequest struct {
-	Path    string `json:"path"`
-	Content string `json:"content"`
+type EditRequest struct{
+	OldContents string `json:"oldContent"`
+	NewContents string `json:"newContent"`
 }
 
-func HandleReadFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+
+
+func HandleToolsRead(w http.ResponseWriter, r *http.Request){
+	path := r.URL.Query().Get("path")
+
+	if path == "" {
+		http.Error(w, "Missing 'path' query parameter", http.StatusBadRequest)
 		return
 	}
 
-	var req ReadRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+	fmt.Printf("Agent Readign File ....")
 
-	fmt.Printf("AI Agent requested to READ: %s\n", req.Path)
 
-	content, err := os.ReadFile(req.Path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Printf("Read Failed %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading file: %v", err), http.StatusInternalServerError)
 		return
 	}
+
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"file_path": req.Path,
-		"content":   string(content),
+		"contents": string(data),
 	})
 }
 
-func HandleWriteFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+
+
+func HandleToolsWrite(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "Missing 'path' query parameter", http.StatusBadRequest)
 		return
 	}
 
 	var req WriteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("AI Agent requested to WRITE: %s\n", req.Path)
+	fmt.Printf("Agent writing to file: %s\n", path)
 
-	err := os.WriteFile(req.Path, []byte(req.Content), 0644)
-	if err != nil {
-		fmt.Printf("Write Failed %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := os.WriteFile(path, []byte(req.Contents), 0644); err != nil {
+		http.Error(w, fmt.Sprintf("Error writing file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "success",
-		"message": fmt.Sprintf("Successfully wrote to %s", req.Path),
-	})
+	w.Write([]byte("success"))
+}
+
+
+
+func HandleToolsEdit(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "Missing 'path' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	var req EditRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("AI Agent editing file: %s\n", path)
+
+	// Read existing file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading file for edit: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Perform the replace
+	contentStr := string(data)
+	if !strings.Contains(contentStr, req.OldContents) {
+		http.Error(w, "oldContents not found in file", http.StatusBadRequest)
+		return
+	}
+	
+	newContentStr := strings.Replace(contentStr, req.OldContents, req.NewContents, 1)
+
+	// Write it back
+	if err := os.WriteFile(path, []byte(newContentStr), 0644); err != nil {
+		http.Error(w, fmt.Sprintf("Error saving edited file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success"))
+}
+
+
+func HandleToolsRestart(w http.ResponseWriter, r *http.Request) {
+	toolname := r.URL.Query().Get("toolname")
+	if toolname == "" {
+		http.Error(w, "Missing 'toolname' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("Agent restarting tool: %s\n", toolname)
+
+	// Execute systemctl restart
+	cmd := exec.Command("systemctl", "restart", toolname)
+	if err := cmd.Run(); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to restart %s: %v", toolname, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success"))
 }

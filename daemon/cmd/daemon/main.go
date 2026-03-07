@@ -52,11 +52,13 @@ func main() {
 	go func() {
 		mux := http.NewServeMux()
 
-		mux.HandleFunc("POST /agent/read", reciever.HandleReadFile)
-		mux.HandleFunc("POST /agent/write", reciever.HandleWriteFile)
+		mux.HandleFunc("GET /tools/read", reciever.HandleToolsRead)
+		mux.HandleFunc("POST /tools/write", reciever.HandleToolsWrite)
+		mux.HandleFunc("POST /tools/edit", reciever.HandleToolsEdit)
+		mux.HandleFunc("GET /tools/restart", reciever.HandleToolsRestart)
 
-		fmt.Println("Agent API listening on :8080...")
 
+		fmt.Println("\nAgent API listening on :8080...")
 		if err := http.ListenAndServe(":8080", mux); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Agent API server error: %v\n", err)
 		}
