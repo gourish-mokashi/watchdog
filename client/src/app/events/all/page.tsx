@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface Event {
   id: string;
@@ -15,12 +19,21 @@ interface Event {
   finished: boolean;
 }
 
+function parseQueryDate(value: string | null): Date | undefined {
+  if (!value) return undefined;
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 export default function EventsAllPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [start, setStart] = useState(searchParams.get("start") ?? "");
-  const [end, setEnd] = useState(searchParams.get("end") ?? "");
+  const [range, setRange] = useState<DateRange | undefined>({
+    from: parseQueryDate(searchParams.get("start")),
+    to: parseQueryDate(searchParams.get("end")),
+  });
   const [rows, setRows] = useState(Number(searchParams.get("rows")) || 10);
   const [sortOrder, setSortOrder] = useState<"lf" | "of">(
     searchParams.has("of") ? "of" : "lf",
@@ -49,14 +62,20 @@ export default function EventsAllPage() {
   }, [doFetch]);
 
   function applyFilters() {
-    if (!start || !end) {
-      setError("Please select both Start Date and End Date.");
+    if (!range?.from || !range?.to) {
+      setError("Please select a start and end date.");
       return;
     }
 
+    const startDate = new Date(range.from);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(range.to);
+    endDate.setHours(23, 59, 0, 0);
+
     const params = new URLSearchParams();
-    if (start) params.set("start", start);
-    if (end) params.set("end", end);
+    params.set("start", format(startDate, "yyyy-MM-dd'T'HH:mm"));
+    params.set("end", format(endDate, "yyyy-MM-dd'T'HH:mm"));
     params.set("rows", String(rows));
     params.set(sortOrder, "true");
     router.push(`/events/all?${params.toString()}`);
@@ -79,53 +98,18 @@ export default function EventsAllPage() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <div className="mx-auto max-w-7xl px-6 py-10">
-        <button
-          onClick={() => router.push("/")}
-          className="mb-6 flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
-        >
-          <span>←</span> Back to filters
-        </button>
-
-        <div className="mb-8 flex items-center gap-3">
-          <img
-            src="/logo.png"
-            alt="Watchdog"
-            className="h-12 w-44 text-zinc-900 dark:text-zinc-50"
-          />
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Events
-          </h1>
-        </div>
-
         {/* Filters */}
         <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Start Date
+              Range Calendar
             </label>
-            <input
-              type="datetime-local"
-              value={start}
-              onChange={(e) => {
-                setStart(e.target.value);
+            <DateRangePicker
+              value={range}
+              onChange={(nextRange) => {
+                setRange(nextRange);
                 if (error) setError(null);
               }}
-              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              End Date
-            </label>
-            <input
-              type="datetime-local"
-              value={end}
-              onChange={(e) => {
-                setEnd(e.target.value);
-                if (error) setError(null);
-              }}
-              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
 

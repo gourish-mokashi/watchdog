@@ -43,17 +43,6 @@ export default function Hero({
       className="h-auto w-full object-contain"
     />
   ),
-  badge = (
-    <Badge variant="outline" className="animate-appear">
-      <span className="text-zinc-500 dark:text-zinc-400">
-        New version of Watchdog is out!
-      </span>
-      <a href={siteConfig.getStartedUrl} className="flex items-center gap-1">
-        Get started
-        <ArrowRightIcon className="size-3" />
-      </a>
-    </Badge>
-  ),
   buttons = [
     {
       href: siteConfig.getStartedUrl,
@@ -76,9 +65,8 @@ export default function Hero({
         className,
       )}
     >
-      <div className="mx-auto flex max-w-7xl flex-col gap-12 pt-16 sm:gap-24">
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 pt-12 sm:gap-24">
         <div className="flex flex-col items-center gap-6 text-center sm:gap-12">
-          {badge !== false && badge}
           <h1 className="animate-appear relative z-10 inline-block bg-gradient-to-r from-zinc-900 to-zinc-500 bg-clip-text text-4xl leading-tight font-semibold text-balance text-transparent drop-shadow-2xl sm:text-6xl sm:leading-tight md:text-7xl md:leading-tight dark:from-zinc-100 dark:to-zinc-400">
             {title}
           </h1>
