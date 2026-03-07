@@ -1,9 +1,11 @@
 import "dotenv/config";
 import express from "express";
+import eventRouter from "./routes/eventRoute.js";
 
 const app = express();
 
-
+app.use(express.json());
+app.use("/events", eventRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello, Watchdog!");
