@@ -137,10 +137,10 @@ export default function Home() {
                   <th className="px-4 py-3">Timestamp</th>
                   <th className="px-4 py-3">Severity</th>
                   <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Report</th>
-                  <th className="px-4 py-3">Count</th>
+                  <th className="px-4 py-3">Occurrence</th>
                   <th className="px-4 py-3">Analysis</th>
                   <th className="px-4 py-3">Finished</th>
+                  <th className="px-4 py-3">Report</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
@@ -152,7 +152,7 @@ export default function Home() {
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
                       {event.sourceTool}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                    <td className="whitespace-nowrap px-4 py-3  text-zinc-600 dark:text-zinc-400">
                       {new Date(event.timestamp).toLocaleString()}
                     </td>
                     <td
@@ -163,21 +163,7 @@ export default function Home() {
                     <td className="max-w-xs truncate px-4 py-3 text-zinc-700 dark:text-zinc-300">
                       {event.description}
                     </td>
-                    <td className="px-4 py-3">
-                      {event.reportUrl ? (
-                        <a
-                          href={event.reportUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline hover:text-blue-500 dark:text-blue-400"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">
                       {event.count}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
@@ -201,6 +187,20 @@ export default function Home() {
                       >
                         {event.finished ? "Analyzed" : null}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {event.reportUrl ? (
+                        <a
+                          href={event.reportUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline hover:text-blue-500 dark:text-blue-400"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
