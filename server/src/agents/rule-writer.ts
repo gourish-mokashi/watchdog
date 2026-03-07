@@ -1,4 +1,4 @@
-import { Agent, MemorySession, run, tool } from "@openai/agents";
+import { Agent, run, tool } from "@openai/agents";
 import { z } from "zod";
 import model from "./client.js";
 import { readFile } from "node:fs/promises";
@@ -8,10 +8,12 @@ import {
   readWithToolApi,
   restartToolWithApi,
   writeWithToolApi,
+  validateRulesWithToolApi,
 } from "../services/daemonToolsClient.js";
 import type { toolname } from "../../generated/prisma/enums.js";
 import { PROJECT_SUMMARY_REMOTE_PATH } from "./project-summariser.js";
 import { logDebug, logInfo } from "../utils/logger.js";
+import { RedisSession } from "./memory/redis.js";
 
 const writeToFile = tool({
   name: "writeToFile",
@@ -54,12 +56,24 @@ const editFile = tool({
 
 const restartTool = tool({
   name: "restartTool",
-  description: "Restart a security tool after successful rule updates.",
+  description: "Restart a security tool after successful rule updates. Make sure to validate rules before restarting.",
   parameters: z.object({
     toolname: z.enum(["falco", "suricata", "wazuh", "zeek"]),
   }),
   async execute({ toolname }) {
     return restartToolWithApi(toolname);
+  },
+});
+
+const validateRules = tool({
+  name: "validateRules",
+  description: "Validate the syntax and check errors of the updated rules file before restarting the tool.",
+  parameters: z.object({
+    toolname: z.enum(["falco", "suricata", "wazuh", "zeek"]),
+    rules: z.string().describe("The rules content to validate."),
+  }),
+  async execute({ toolname, rules }) {
+    return validateRulesWithToolApi(toolname, rules);
   },
 });
 
@@ -109,7 +123,8 @@ Follow this workflow exactly:
 3) Generate a production-ready rules file for the selected tool.
 4) Add rationale comments near major rule blocks so operators understand why each rule exists and how it suppresses noise.
 5) Write the final rules file via writeToFile to the exact path from watchdog.yaml.
-6) Restart the selected tool using restartTool only after writeToFile returns success.
+6) Validate the rules file using validateRules before restarting the tool.
+7) Restart the selected tool using restartTool only after writeToFile returns success.
 
 Hard requirements:
 - Keep rules conservative: minimize false positives.
@@ -123,7 +138,7 @@ Skill context:
 ${skillContext}
     `,
     model,
-    tools: [readFromFile, writeToFile, editFile, restartTool],
+    tools: [readFromFile, writeToFile, editFile, validateRules, restartTool],
   });
 
 export async function runRuleWriterAgent(
@@ -131,7 +146,9 @@ export async function runRuleWriterAgent(
   projectSummary?: string,
 ): Promise<string> {
   logInfo("agent.rule-writer", "start", { tool: selectedTool });
-  const session = new MemorySession();
+
+  const session = new RedisSession(`rule-writer:${selectedTool}`);
+
   const skillContext = await loadSkillContext(selectedTool);
   const resolvedProjectSummary = await loadProjectSummaryContext(projectSummary);
   const agent = createRuleWriterAgent(skillContext);

@@ -1,4 +1,4 @@
-import { Agent, MemorySession, run, tool } from "@openai/agents";
+import { Agent, run, tool } from "@openai/agents";
 import { z } from "zod";
 import path from "node:path";
 import model from "./client.js";
@@ -8,6 +8,7 @@ import {
   writeWithToolApi,
 } from "../services/daemonToolsClient.js";
 import { logDebug, logInfo } from "../utils/logger.js";
+import { RedisSession } from "./memory/redis.js";
 
 const normalizePath = (value: string): string => path.posix.resolve(value.replaceAll("\\", "/"));
 
@@ -99,7 +100,7 @@ Strict rules:
 
 export async function runProjectSummariserAgent(projectRoot: string): Promise<string> {
   logInfo("agent.project-summariser", "start", { projectRoot });
-  const session = new MemorySession();
+  const session = new RedisSession(`project-summariser:${projectRoot}`);
   const agent = createProjectSummariserAgent(projectRoot);
 
   const input = `Analyze project at root path: ${projectRoot}
