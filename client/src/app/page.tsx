@@ -8,9 +8,16 @@ export default function Home() {
   const [end, setEnd] = useState("");
   const [rows, setRows] = useState(10);
   const [sortOrder, setSortOrder] = useState<"lf" | "of">("lf");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const router = useRouter();
 
   function fetchEvents() {
+    if (!start || !end) {
+      setValidationError("Please select both Start Date and End Date.");
+      return;
+    }
+
+    setValidationError(null);
     const params = new URLSearchParams();
     if (start) params.set("start", start);
     if (end) params.set("end", end);
@@ -35,7 +42,10 @@ export default function Home() {
             <input
               type="datetime-local"
               value={start}
-              onChange={(e) => setStart(e.target.value)}
+              onChange={(e) => {
+                setStart(e.target.value);
+                if (validationError) setValidationError(null);
+              }}
               className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
@@ -47,7 +57,10 @@ export default function Home() {
             <input
               type="datetime-local"
               value={end}
-              onChange={(e) => setEnd(e.target.value)}
+              onChange={(e) => {
+                setEnd(e.target.value);
+                if (validationError) setValidationError(null);
+              }}
               className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
@@ -86,6 +99,12 @@ export default function Home() {
             Fetch Events
           </button>
         </div>
+
+        {validationError && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            {validationError}
+          </div>
+        )}
 
         <p className="mt-10 text-center text-sm text-zinc-400">
           Set your filters and click Fetch Events to view results.

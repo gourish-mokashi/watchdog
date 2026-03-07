@@ -49,6 +49,11 @@ export default function EventsAllPage() {
   }, [doFetch]);
 
   function applyFilters() {
+    if (!start || !end) {
+      setError("Please select both Start Date and End Date.");
+      return;
+    }
+
     const params = new URLSearchParams();
     if (start) params.set("start", start);
     if (end) params.set("end", end);
@@ -94,7 +99,10 @@ export default function EventsAllPage() {
             <input
               type="datetime-local"
               value={start}
-              onChange={(e) => setStart(e.target.value)}
+              onChange={(e) => {
+                setStart(e.target.value);
+                if (error) setError(null);
+              }}
               className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
@@ -106,7 +114,10 @@ export default function EventsAllPage() {
             <input
               type="datetime-local"
               value={end}
-              onChange={(e) => setEnd(e.target.value)}
+              onChange={(e) => {
+                setEnd(e.target.value);
+                if (error) setError(null);
+              }}
               className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
