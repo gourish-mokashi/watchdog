@@ -80,9 +80,6 @@ func (f *FalcoTool) Configure() error {
 
 	watchdogConfig := []byte(`
 # Watchdog Auto-Generated Override Config
-engine:
-  kind: modern_ebpf
-
 json_output: true
 json_include_output_property: true
 json_include_output_fields_property: true

@@ -22,6 +22,8 @@ func StartFalcoHTTP(socketPath string, eventQueue chan<- models.SecEvent) {
 	http.HandleFunc("/falco", func(w http.ResponseWriter, r *http.Request) {
 		var payload FalcoPayload
 
+		fmt.Println("Recived Request from Falco")
+
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			fmt.Printf("Error decoding falco event: %v", err)
 			http.Error(w, "Invalid payload", http.StatusBadRequest)

@@ -122,6 +122,28 @@ func HandleToolsWrite(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("success"))
 }
 
+func HandleToolsValidate(w http.ResponseWriter, r *http.Request) {
+	agentLog("running Falco validation")
+
+	cmd := exec.Command("sudo", "falco", "-c", "/etc/falco/falco.yaml", "--dry-run")
+	output, err := cmd.CombinedOutput()
+	result := strings.TrimSpace(string(output))
+	if result == "" {
+		result = "validation completed with no output"
+	}
+
+	if err != nil {
+		agentLog("Falco validation failed: %v | output: %s", err, result)
+		http.Error(w, fmt.Sprintf("Falco validation failed: %v\n%s", err, result), http.StatusInternalServerError)
+		return
+	}
+
+	agentLog("Falco validation successful")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(result))
+}
+
 func HandleToolsEdit(w http.ResponseWriter, r *http.Request) {
 	var req EditRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
