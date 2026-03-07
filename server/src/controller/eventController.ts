@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { prisma } from "../exports/prisma.js";
 import { toolname } from "../../generated/prisma/enums.js";
+import { enqueueThreatAnalysis } from "../services/threatAnalysisQueue.js";
+import { getSignedThreatReportUrl } from "../services/awsReportStorage.js";
 
 const isValidToolName = (value: unknown): value is toolname =>
   typeof value === "string" &&
@@ -140,7 +142,14 @@ export const getAllEvents = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json(events);
+    const signedEvents = await Promise.all(
+      events.map(async (event) => ({
+        ...event,
+        reportUrl: event.reportUrl ? await getSignedThreatReportUrl(event.reportUrl) : "",
+      })),
+    );
+
+    return res.status(200).json(signedEvents);
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch events", details: String(error) });
   }
@@ -156,7 +165,10 @@ export const getEventById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    return res.status(200).json(event);
+    const signedReportUrl = event.reportUrl
+      ? await getSignedThreatReportUrl(event.reportUrl)
+      : "";
+    return res.status(200).json({ ...event, reportUrl: signedReportUrl });
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch event", details: String(error) });
   }
@@ -177,10 +189,13 @@ export const analyseEvent = async (req: Request, res: Response) => {
       data: {
         askedAnalysis: true,
         finished: false,
+        reportUrl: "",
       },
     });
 
-    return res.status(200).json({ success: true });
+    const queued = enqueueThreatAnalysis(uuid);
+
+    return res.status(200).json({ success: true, queued });
   } catch (error) {
     return res.status(500).json({ error: "Failed to start analysis", details: String(error) });
   }
@@ -203,10 +218,15 @@ export const getEventStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
+    const signedReportUrl =
+      event.finished && event.reportUrl
+        ? await getSignedThreatReportUrl(event.reportUrl)
+        : "";
+
     return res.status(200).json({
       askedAnalysis: event.askedAnalysis,
       finished: event.finished,
-      reportUrl: event.finished ? event.reportUrl : "",
+      reportUrl: signedReportUrl,
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch status", details: String(error) });
