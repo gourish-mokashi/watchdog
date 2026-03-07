@@ -56,7 +56,7 @@ func main() {
 		mux.HandleFunc("POST /tools/write", reciever.HandleToolsWrite)
 		mux.HandleFunc("POST /tools/edit", reciever.HandleToolsEdit)
 		mux.HandleFunc("GET /tools/restart", reciever.HandleToolsRestart)
-
+		mux.HandleFunc("GET /tools/direnum", reciever.HandleDirEnum)
 
 		fmt.Println("\nAgent API listening on :8080...")
 		if err := http.ListenAndServe(":8080", mux); err != nil && err != http.ErrServerClosed {

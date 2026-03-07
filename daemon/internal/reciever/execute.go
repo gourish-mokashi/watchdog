@@ -11,18 +11,16 @@ import (
 	"strings"
 )
 
-type WriteRequest struct{
+type WriteRequest struct {
 	Contents string `json:"content"`
 }
 
-type EditRequest struct{
+type EditRequest struct {
 	OldContents string `json:"oldContent"`
 	NewContents string `json:"newContent"`
 }
 
-
-
-func HandleToolsRead(w http.ResponseWriter, r *http.Request){
+func HandleToolsRead(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 
 	if path == "" {
@@ -32,13 +30,11 @@ func HandleToolsRead(w http.ResponseWriter, r *http.Request){
 
 	fmt.Printf("Agent Readign File ....")
 
-
 	data, err := os.ReadFile(path)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error reading file: %v", err), http.StatusInternalServerError)
 		return
 	}
-
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -46,8 +42,6 @@ func HandleToolsRead(w http.ResponseWriter, r *http.Request){
 		"contents": string(data),
 	})
 }
-
-
 
 func HandleToolsWrite(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
@@ -72,8 +66,6 @@ func HandleToolsWrite(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("success"))
 }
-
-
 
 func HandleToolsEdit(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
@@ -103,7 +95,7 @@ func HandleToolsEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "oldContents not found in file", http.StatusBadRequest)
 		return
 	}
-	
+
 	newContentStr := strings.Replace(contentStr, req.OldContents, req.NewContents, 1)
 
 	// Write it back
@@ -115,7 +107,6 @@ func HandleToolsEdit(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("success"))
 }
-
 
 func HandleToolsRestart(w http.ResponseWriter, r *http.Request) {
 	toolname := r.URL.Query().Get("toolname")
