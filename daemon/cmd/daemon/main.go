@@ -80,7 +80,7 @@ func RunInstallerUI() {
 	tools := []installers.SecurityTools{
 		&installers.FalcoTool{},
 		&installers.SuricataTool{},
-		// &installers.WazuhTool{},  // uncomment once internal/installers/wazuh.go is implemented
+		&installers.WazuhTool{},
 		// &installers.ZeekTool{},   // uncomment once internal/installers/zeek.go is implemented
 	}
 
