@@ -2,10 +2,18 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gourish-mokashi/watchdog/daemon/internal/dispatcher"
 	"github.com/gourish-mokashi/watchdog/daemon/internal/installers"
+	"github.com/gourish-mokashi/watchdog/daemon/internal/reciever"
+	"github.com/gourish-mokashi/watchdog/daemon/internal/ui"
+	"github.com/gourish-mokashi/watchdog/daemon/pkg/models"
+	"github.com/gourish-mokashi/watchdog/daemon/watchers"
 )
 
 func main() {
