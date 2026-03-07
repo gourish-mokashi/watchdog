@@ -7,7 +7,7 @@ interface Event {
   id: string;
   sourceTool: string;
   timestamp: string;
-  severity: number;
+  priority: string;
   description: string;
   reportUrl: string;
   count: number;
@@ -21,9 +21,7 @@ export default function EventsAllPage() {
 
   const [start, setStart] = useState(searchParams.get("start") ?? "");
   const [end, setEnd] = useState(searchParams.get("end") ?? "");
-  const [rows, setRows] = useState(
-    Number(searchParams.get("rows")) || 10,
-  );
+  const [rows, setRows] = useState(Number(searchParams.get("rows")) || 10);
   const [sortOrder, setSortOrder] = useState<"lf" | "of">(
     searchParams.has("of") ? "of" : "lf",
   );
@@ -59,15 +57,9 @@ export default function EventsAllPage() {
     router.push(`/events/all?${params.toString()}`);
   }
 
-  function priorityLabel(severity: number) {
-    if (severity >= 0.8) return "Critical";
-    if (severity >= 0.5) return "Medium";
-    return "Low";
-  }
-
-  function priorityColor(severity: number) {
-    if (severity >= 0.8) return "text-red-500";
-    if (severity >= 0.5) return "text-yellow-500";
+  function priorityColor(priority: string) {
+    if (priority === "Critical") return "text-red-500";
+    if (priority === "Medium") return "text-yellow-500";
     return "text-green-500";
   }
 
@@ -189,9 +181,9 @@ export default function EventsAllPage() {
                       {new Date(event.timestamp).toLocaleString()}
                     </td>
                     <td
-                      className={`whitespace-nowrap px-4 py-3 font-semibold ${priorityColor(event.severity)}`}
+                      className={`whitespace-nowrap px-4 py-3 font-semibold ${priorityColor(event.priority)}`}
                     >
-                      {priorityLabel(event.severity)}
+                      {event.priority}
                     </td>
                     <td className="max-w-xs truncate px-4 py-3 text-zinc-700 dark:text-zinc-300">
                       {event.description}
