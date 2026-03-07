@@ -169,13 +169,12 @@ var (
 
 func banner() string {
 	art := `
-██╗    ██╗ █████╗ ████████╗ ██████╗██╗  ██╗██████╗  ██████╗  ██████╗ 
-██║    ██║██╔══██╗╚══██╔══╝██╔════╝██║  ██║██╔══██╗██╔═══██╗██╔════╝ 
-██║ █╗ ██║███████║   ██║   ██║     ███████║██║  ██║██║   ██║██║  ███╗
-██║███╗██║██╔══██║   ██║   ██║     ██╔══██║██║  ██║██║   ██║██║   ██║
-╚███╔███╔╝██║  ██║   ██║   ╚██████╗██║  ██║██████╔╝╚██████╔╝╚██████╔╝
- ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝╚═╝  ╚═╝╚═════╝  ╚═════╝  ╚═════╝ 
-                                                                     `
+__        ___  _____ ____ _   _ ____   ___   ____
+\ \      / / \|_   _/ ___| | | |  _ \ / _ \ / ___|
+ \ \ /\ / / _ \ | || |   | |_| | | | | | | | |  _
+  \ V  V / ___ \| || |___|  _  | |_| | |_| | |_| |
+   \_/\_/_/   \_\_| \____|_| |_|____/ \___/ \____|
+`
 	return logoStyle.Render(art)
 }
 
@@ -299,6 +298,8 @@ type model struct {
 	writeRules     bool
 	yesSelected    bool
 	textInput      textinput.Model
+	windowWidth    int
+	windowHeight   int
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -458,6 +459,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.progress = progressModel.(progress.Model)
 		cmds = append(cmds, cmd)
 
+	case tea.WindowSizeMsg:
+		m.windowWidth = msg.Width
+		m.windowHeight = msg.Height
+		m.syncLayout()
+
 	// ── Keyboard input ──────────────────────────────────────────────
 	case tea.KeyMsg:
 		switch {
@@ -468,9 +474,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.Type == tea.KeyEnter {
 				path := strings.TrimSpace(m.textInput.Value())
 				if path == "" {
-					m.logs = append(m.logs, fmtLogError("Project path cannot be empty"))
+					m.projectPath = ""
+					m.logs = append(m.logs, fmtLogInfo("Project path skipped for now"))
 					m.viewport.SetContent(strings.Join(m.logs, "\n"))
 					m.viewport.GotoBottom()
+					m.yesSelected = true
+					m.state = stateAskAnalyze
 					return m, nil
 				}
 
@@ -736,7 +745,7 @@ func (m model) viewProjectPath() string {
 	b.WriteString("\n")
 	b.WriteString(titleBarStyle.Render("  PROJECT PATH  "))
 	b.WriteString("\n\n")
-	b.WriteString("  Enter your project path.\n\n")
+	b.WriteString("  Enter your project path, or press enter to skip for now.\n\n")
 	b.WriteString("  " + m.textInput.View() + "\n\n")
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
@@ -757,6 +766,16 @@ func (m model) viewYesNoPrompt(title, question string) string {
 	b.WriteString("\n")
 
 	return outerBoxStyle.Render(b.String())
+}
+
+func (m *model) syncLayout() {
+	contentWidth := m.contentWidth()
+	m.progress.Width = maxInt(20, minInt(50, contentWidth-8))
+	m.textInput.Width = maxInt(24, contentWidth-8)
+	m.viewport.Width = maxInt(24, contentWidth-6)
+	m.viewport.Height = m.logViewportHeight()
+	m.viewport.SetContent(strings.Join(m.logs, "\n"))
+	m.viewport.GotoBottom()
 }
 
 func (m model) viewWorking(message string) string {
@@ -862,6 +881,20 @@ func renderYesNoChoice(yesSelected bool) string {
 	}
 
 	return unselected.Render("YES") + "   " + selected.Render("NO")
+}
+
+func (m model) contentWidth() int {
+	if m.windowWidth <= 0 {
+		return 72
+	}
+	return maxInt(48, minInt(m.windowWidth-10, 100))
+}
+
+func (m model) logViewportHeight() int {
+	if m.windowHeight <= 0 {
+		return 12
+	}
+	return maxInt(8, minInt(m.windowHeight-18, 16))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -999,4 +1032,18 @@ func truncateLine(line string, limit int) string {
 		return line
 	}
 	return line[:limit-3] + "..."
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
