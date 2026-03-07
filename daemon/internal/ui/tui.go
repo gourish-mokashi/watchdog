@@ -532,7 +532,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				if strings.TrimSpace(m.projectPath) == "" {
-					m.logs = append(m.logs, fmtLogInfo("Project path was skipped, so rule generation is deferred for now"))
+					m.logs = append(m.logs, fmtLogInfo("Project path was skipped, so backend summary generation is skipped"))
+					m.logs = append(m.logs, fmtLogInfo("Rules will still be written for Falco at /etc/falco/rules.d/watchdog-rules.yaml"))
+					m.logs = append(m.logs, fmtLogInfo("Falco config will still be written at /etc/falco/config.d/watchdog.yaml"))
 					m.viewport.SetContent(strings.Join(m.logs, "\n"))
 					m.viewport.GotoBottom()
 					m.yesSelected = true
