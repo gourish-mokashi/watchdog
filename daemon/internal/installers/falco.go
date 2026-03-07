@@ -78,8 +78,8 @@ func (f *FalcoTool) Configure() error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	sentinelConfig := []byte(`
-# Sentinel Auto-Generated Override Config
+	watchdogConfig := []byte(`
+# Watchdog Auto-Generated Override Config
 engine:
   kind: modern_ebpf
 
@@ -93,8 +93,8 @@ http_output:
   url: "http://localhost:8081/falco"
 `)
 
-	filePath := configDir + "/sentinel.yaml"
-	if err := os.WriteFile(filePath, sentinelConfig, 0644); err != nil {
+	filePath := configDir + "/watchdog.yaml"
+	if err := os.WriteFile(filePath, watchdogConfig, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

@@ -121,7 +121,7 @@ func (m model) View() string {
 		return m.renderInstallation()
 	case StateDone:
 		var b strings.Builder
-		b.WriteString(titleStyle.Render("SENTINEL INSTALLATION COMPLETE"))
+		b.WriteString(titleStyle.Render("WATCHDOG INSTALLATION COMPLETE"))
 		b.WriteString("\n\n")
 		for _, log := range m.logs {
 			b.WriteString("  " + log + "\n")
@@ -135,7 +135,7 @@ func (m model) View() string {
 func (m model) renderSelection() string {
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("SENTINEL INIT: SELECT SECURITY MODULES"))
+	b.WriteString(titleStyle.Render("WATCHDOG INIT: SELECT SECURITY MODULES"))
 	b.WriteString("\n")
 
 	for i, tool := range m.tools {
@@ -164,7 +164,7 @@ func (m model) renderSelection() string {
 
 func (m model) renderInstallation() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("DEPLOYING SENTINEL MODULES..."))
+	b.WriteString(titleStyle.Render("DEPLOYING watchdog MODULES..."))
 	b.WriteString("\n\n")
 
 	for _, log := range m.logs {
