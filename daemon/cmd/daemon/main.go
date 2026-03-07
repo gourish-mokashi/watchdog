@@ -20,6 +20,7 @@ var backendURL = os.Getenv("WATCHDOG_BACKEND_URL")
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "init" {
+		go startAgentAPIServer()
 		RunInstallerUI()
 		return
 	}
@@ -53,25 +54,27 @@ func main() {
 		}
 	}()
 
-	go func() {
-		mux := http.NewServeMux()
-
-		mux.HandleFunc("GET /tools/read", reciever.HandleToolsRead)
-		mux.HandleFunc("POST /tools/write", reciever.HandleToolsWrite)
-		mux.HandleFunc("POST /tools/edit", reciever.HandleToolsEdit)
-		mux.HandleFunc("GET /tools/restart", reciever.HandleToolsRestart)
-		mux.HandleFunc("GET /tools/direnum", reciever.HandleDirEnum)
-
-		fmt.Println("\nAgent API listening on :8080...")
-		if err := http.ListenAndServe(":8080", mux); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Agent API server error: %v\n", err)
-		}
-	}()
+	go startAgentAPIServer()
 
 	<-signalChan
 
 	fmt.Println("Daemon Shutting Down...")
 
+}
+
+func startAgentAPIServer() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /tools/read", reciever.HandleToolsRead)
+	mux.HandleFunc("POST /tools/write", reciever.HandleToolsWrite)
+	mux.HandleFunc("POST /tools/edit", reciever.HandleToolsEdit)
+	mux.HandleFunc("GET /tools/restart", reciever.HandleToolsRestart)
+	mux.HandleFunc("GET /tools/direnum", reciever.HandleDirEnum)
+
+	fmt.Println("\nAgent API listening on :8080...")
+	if err := http.ListenAndServe(":8080", mux); err != nil && err != http.ErrServerClosed {
+		fmt.Printf("Agent API server error: %v\n", err)
+	}
 }
 
 func RunInstallerUI() {
