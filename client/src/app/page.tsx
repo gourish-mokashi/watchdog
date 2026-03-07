@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Event {
   id: string;
@@ -22,6 +23,7 @@ export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   async function fetchEvents() {
     setLoading(true);
@@ -147,7 +149,8 @@ export default function Home() {
                 {events.map((event) => (
                   <tr
                     key={event.id}
-                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                    onClick={() => router.push(`/event/${event.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
                       {event.sourceTool}
