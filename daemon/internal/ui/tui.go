@@ -236,6 +236,7 @@ const (
 	stateAskAnalyze
 	stateAskWriteRules
 	stateGeneratingSummary
+	stateGeneratingRules
 	stateAskRestart
 	stateRestarting
 	stateDone
@@ -259,6 +260,10 @@ type installDoneMsg struct {
 type summaryDoneMsg struct {
 	text string
 	err  error
+}
+
+type rulesDoneMsg struct {
+	err error
 }
 
 type restartDoneMsg struct {
@@ -296,6 +301,7 @@ type model struct {
 	projectPath    string
 	runAnalysis    bool
 	writeRules     bool
+	summaryText    string
 	yesSelected    bool
 	textInput      textinput.Model
 	windowWidth    int
@@ -425,13 +431,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case summaryDoneMsg:
 		if msg.err != nil {
 			m.logs = append(m.logs, fmtLogError(msg.err.Error()))
+			m.viewport.SetContent(strings.Join(m.logs, "\n"))
+			m.viewport.GotoBottom()
+			m.yesSelected = true
+			m.state = stateAskRestart
 		} else {
+			m.summaryText = msg.text
 			if msg.text != "" {
 				m.logs = append(m.logs, fmtLogInfo("Backend summary generated successfully"))
 				m.logs = append(m.logs, fmtLogCommand(truncateLine(msg.text, 140)))
 			}
-			m.logs = append(m.logs, fmtLogInfo("Falco rules will be written to /etc/falco/rules.d/watchdog-rules.yaml"))
-			m.logs = append(m.logs, fmtLogInfo("Falco config will be written to /etc/falco/config.d/watchdog.yaml"))
+			m.logs = append(m.logs, fmtLogInfo("Requesting backend rule generation..."))
+			m.viewport.SetContent(strings.Join(m.logs, "\n"))
+			m.viewport.GotoBottom()
+			m.state = stateGeneratingRules
+			return m, generateRulesCmd(m.selectedTools, m.summaryText, m.backendURL)
+		}
+
+	case rulesDoneMsg:
+		if msg.err != nil {
+			m.logs = append(m.logs, fmtLogError(msg.err.Error()))
+		} else {
+			m.logs = append(m.logs, fmtLogSuccess("Backend rule generation completed"))
+			if hasSelectedTool(m.selectedTools, "Falco") {
+				m.logs = append(m.logs, fmtLogInfo("Falco rules will be written to /etc/falco/rules.d/watchdog-rules.yaml"))
+				m.logs = append(m.logs, fmtLogInfo("Falco config will be written to /etc/falco/config.d/watchdog.yaml"))
+			}
 		}
 		m.viewport.SetContent(strings.Join(m.logs, "\n"))
 		m.viewport.GotoBottom()
@@ -531,6 +556,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				if strings.TrimSpace(m.projectPath) == "" {
+					m.logs = append(m.logs, fmtLogInfo("Project path was skipped, so backend summary generation is skipped"))
+					m.viewport.SetContent(strings.Join(m.logs, "\n"))
+					m.viewport.GotoBottom()
+					m.summaryText = ""
+					m.state = stateGeneratingRules
+					return m, generateRulesCmd(m.selectedTools, m.summaryText, m.backendURL)
+				}
+
 				m.logs = append(m.logs, fmtLogInfo("Requesting project summary from backend..."))
 				m.viewport.SetContent(strings.Join(m.logs, "\n"))
 				m.viewport.GotoBottom()
@@ -607,7 +641,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Keep spinner ticking during long-running states
-	if m.state == stateInstalling || m.state == stateGeneratingSummary || m.state == stateRestarting {
+	if m.state == stateInstalling || m.state == stateGeneratingSummary || m.state == stateGeneratingRules || m.state == stateRestarting {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		if cmd != nil {
@@ -632,6 +666,8 @@ func (m model) View() string {
 		return m.viewYesNoPrompt("RULE GENERATION", "Do you want the agent to write rules for the installed security tools?")
 	case stateGeneratingSummary:
 		return m.viewWorking("Generating project summary from backend...")
+	case stateGeneratingRules:
+		return m.viewWorking("Generating rules from backend...")
 	case stateAskRestart:
 		return m.viewYesNoPrompt("RESTART SERVICES", "Do you want to restart the installed services?")
 	case stateRestarting:
@@ -965,6 +1001,31 @@ func restartServicesCmd(tools []installers.SecurityTools) tea.Cmd {
 		}
 		return restartDoneMsg{err: nil}
 	}
+}
+
+func generateRulesCmd(tools []installers.SecurityTools, contents, backendURL string) tea.Cmd {
+	return func() tea.Msg {
+		if strings.TrimSpace(backendURL) == "" {
+			return rulesDoneMsg{err: fmt.Errorf("WATCHDOG_BACKEND_URL is not configured")}
+		}
+
+		for _, tool := range tools {
+			if err := dispatcher.SendRule(strings.ToLower(tool.Name()), contents, backendURL); err != nil {
+				return rulesDoneMsg{err: fmt.Errorf("[%s] rule generation failed: %v", tool.Name(), err)}
+			}
+		}
+
+		return rulesDoneMsg{err: nil}
+	}
+}
+
+func hasSelectedTool(tools []installers.SecurityTools, name string) bool {
+	for _, tool := range tools {
+		if strings.EqualFold(tool.Name(), name) {
+			return true
+		}
+	}
+	return false
 }
 
 func waitForInstallMsg(ch <-chan tea.Msg) tea.Cmd {

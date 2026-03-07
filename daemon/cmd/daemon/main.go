@@ -36,13 +36,15 @@ func main() {
 	go watchers.StartFalcoHTTP("8081", eventQueue)
 
 	go func() {
-
-		targetURL := "https://webhook.site/29e9869b-01ca-461f-b3ae-fabe5755b0d8"
-
 		for alert := range eventQueue {
 			fmt.Printf("Shiping alerts from %s...\n", alert.SourceTool)
 
-			err := dispatcher.SendAlerts(alert, targetURL)
+			if backendURL == "" {
+				fmt.Println("WATCHDOG_BACKEND_URL not configured; skipping alert dispatch")
+				continue
+			}
+
+			err := dispatcher.SendAlerts(alert, backendURL)
 			if err != nil {
 				fmt.Printf("Error sending alert: %v\n", err)
 			} else {
@@ -73,7 +75,6 @@ func main() {
 }
 
 func RunInstallerUI() {
-	
 
 	// ── REGISTERED SECURITY TOOLS ───────────────────────────────────────
 	// To add a new tool:
