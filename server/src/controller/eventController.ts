@@ -3,7 +3,7 @@ import { prisma } from "../exports/prisma.js";
 import { toolname } from "../../generated/prisma/enums.js";
 import { enqueueThreatAnalysis } from "../services/threatAnalysisQueue.js";
 import { getSignedThreatReportUrl } from "../services/awsReportStorage.js";
-import { logDebug, logError } from "../utils/logger.js";
+import { logDebug, logError, logInfo } from "../utils/logger.js";
 
 const isValidToolName = (value: unknown): value is toolname =>
   typeof value === "string" &&
@@ -40,6 +40,11 @@ const parseRows = (value: unknown): number | null => {
 export const createEvent = async (req: Request, res: Response) => {
   try {
     const { sourceTool, timestamp, priority, description, rawPayload } = req.body;
+    logDebug("event.create", "request", {
+      sourceTool: typeof sourceTool === "string" ? sourceTool : null,
+      hasTimestamp: Boolean(timestamp),
+      hasPayload: rawPayload !== undefined,
+    });
 
     if (!isValidToolName(sourceTool)) {
       return res.status(400).json({ error: "Invalid sourceTool" });
@@ -76,6 +81,8 @@ export const createEvent = async (req: Request, res: Response) => {
         },
       });
 
+      logInfo("event.create", "updated existing", { eventId: updated.id });
+
       return res.status(200).json({
         success: true,
         id: updated.id,
@@ -94,12 +101,15 @@ export const createEvent = async (req: Request, res: Response) => {
       },
     });
 
+    logInfo("event.create", "created", { eventId: created.id });
+
     return res.status(201).json({
       success: true,
       id: created.id,
       updatedExisting: false,
     });
   } catch (error) {
+    logError("event.create", "failed", { error: String(error) });
     return res.status(500).json({ error: "Failed to create event", details: String(error) });
   }
 };
@@ -115,6 +125,12 @@ export const getAllEvents = async (req: Request, res: Response) => {
     const parsedEnd = end ? parseDate(end) : null;
     const parsedRows = parseRows(rows);
     const latestFirst = parseBool(lf) ?? true;
+    logDebug("event.all", "request", {
+      start: start ?? null,
+      end: end ?? null,
+      rows: parsedRows ?? 100,
+      latestFirst,
+    });
 
     if (start && !parsedStart) return res.status(400).json({ error: "Invalid start date" });
     if (end && !parsedEnd) return res.status(400).json({ error: "Invalid end date" });
@@ -150,8 +166,11 @@ export const getAllEvents = async (req: Request, res: Response) => {
       })),
     );
 
+    logDebug("event.all", "response", { count: signedEvents.length });
+
     return res.status(200).json(signedEvents);
   } catch (error) {
+    logError("event.all", "failed", { error: String(error) });
     return res.status(500).json({ error: "Failed to fetch events", details: String(error) });
   }
 };
@@ -159,18 +178,25 @@ export const getAllEvents = async (req: Request, res: Response) => {
 export const getEventById = async (req: Request, res: Response) => {
   try {
     const uuid = getSingleValue(req.params.uuid);
+    logDebug("event.byId", "request", { eventId: uuid ?? null });
     if (!uuid) return res.status(400).json({ error: "Invalid event id" });
     const event = await prisma.event.findUnique({ where: { id: uuid } });
 
     if (!event) {
+      logDebug("event.byId", "not found", { eventId: uuid });
       return res.status(404).json({ error: "Event not found" });
     }
 
     const signedReportUrl = event.reportUrl
       ? await getSignedThreatReportUrl(event.reportUrl)
       : "";
+    logDebug("event.byId", "response", { eventId: uuid, hasReport: Boolean(signedReportUrl) });
     return res.status(200).json({ ...event, reportUrl: signedReportUrl });
   } catch (error) {
+    logError("event.byId", "failed", {
+      eventId: req.params.uuid,
+      error: String(error),
+    });
     return res.status(500).json({ error: "Failed to fetch event", details: String(error) });
   }
 };
@@ -178,6 +204,7 @@ export const getEventById = async (req: Request, res: Response) => {
 export const analyseEvent = async (req: Request, res: Response) => {
   try {
     const uuid = getSingleValue(req.params.uuid);
+    logDebug("event.analyse", "request", { eventId: uuid ?? null });
     if (!uuid) return res.status(400).json({ error: "Invalid event id" });
     const event = await prisma.event.findUnique({ where: { id: uuid } });
 
@@ -210,6 +237,7 @@ export const analyseEvent = async (req: Request, res: Response) => {
 export const getEventStatus = async (req: Request, res: Response) => {
   try {
     const uuid = getSingleValue(req.params.uuid);
+    logDebug("event.status", "request", { eventId: uuid ?? null });
     if (!uuid) return res.status(400).json({ error: "Invalid event id" });
     const event = await prisma.event.findUnique({
       where: { id: uuid },
@@ -229,12 +257,23 @@ export const getEventStatus = async (req: Request, res: Response) => {
         ? await getSignedThreatReportUrl(event.reportUrl)
         : "";
 
+    logDebug("event.status", "response", {
+      eventId: uuid,
+      askedAnalysis: event.askedAnalysis,
+      finished: event.finished,
+      hasReport: Boolean(signedReportUrl),
+    });
+
     return res.status(200).json({
       askedAnalysis: event.askedAnalysis,
       finished: event.finished,
       reportUrl: signedReportUrl,
     });
   } catch (error) {
+    logError("event.status", "failed", {
+      eventId: req.params.uuid,
+      error: String(error),
+    });
     return res.status(500).json({ error: "Failed to fetch status", details: String(error) });
   }
 };
