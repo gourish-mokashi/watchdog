@@ -1,7 +1,8 @@
-import { Agent, MemorySession, run } from "@openai/agents";
+import { Agent, run } from "@openai/agents";
 import model from "./client.js";
 import type { toolname } from "../../generated/prisma/enums.js";
 import { logInfo } from "../utils/logger.js";
+import { RedisSession } from "./memory/redis.js";
 
 export const PROJECT_SUMMARY_PATH = "~/.watchdog/project-summary.md";
 
@@ -63,7 +64,7 @@ export async function runThreatAnalysisAgent(input: ThreatAnalysisInput): Promis
     eventId: input.eventId,
     tool: input.sourceTool,
   });
-  const session = new MemorySession();
+  const session = new RedisSession(`threat-analysis:${input.eventId}`);
   const agent = createThreatAnalysisAgent();
 
   const prompt = `Analyze this detection event.

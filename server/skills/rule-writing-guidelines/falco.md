@@ -77,7 +77,7 @@ Why this model:
 ## Validation and Deployment
 
 1. Validate syntax and load:
-- `Use Tool validateConfig`
+- `Use Tool validateRules before restart`
 2. Deploy:
 - `Use Tool RestartService`
 3. Observe first-hour hit rate and tune exceptions iteratively.

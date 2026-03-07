@@ -1,16 +1,13 @@
 import { type VariantProps } from "class-variance-authority";
-import { ArrowRightIcon } from "lucide-react";
 import { ReactNode } from "react";
 
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 import Github from "@/components/logos/github";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Glow from "@/components/ui/glow";
 import { Mockup, MockupFrame } from "@/components/ui/mockup";
-import Screenshot from "@/components/ui/screenshot";
 import { Section } from "@/components/ui/section";
 
 interface HeroButtonProps {
@@ -34,14 +31,15 @@ export default function Hero({
   title = "Eyes on Every Threat, Guarding Every Step",
   description = "Watchdog monitors, detects, and neutralizes cyber threats in real-time, giving you peace of mind and total control over your digital space.",
   mockup = (
-    <Screenshot
-      srcLight="/logo.png"
-      srcDark="/logo.png"
-      alt="Watchdog app screenshot"
-      width={1200}
-      height={400}
-      className="h-auto w-full object-contain"
-    />
+    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+      <iframe
+        className="absolute inset-0 h-full w-full rounded-xl"
+        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        title="Watchdog demo"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    </div>
   ),
   buttons = [
     {

@@ -140,3 +140,28 @@ export const direnumWithToolApi = async (level: number, path: string): Promise<D
     contents: payload.contents,
   };
 };
+
+export const validateRulesWithToolApi = async (tool: toolname, rules: string): Promise<string> => {
+  logDebug("daemon.tools", "validate rules request", { tool, bytes: rules.length });
+  const response = await fetch(buildUrl("/tools/validate", { toolname: tool }), {
+    method: "GET",
+  });
+
+  const rawResult = (await response.text()).trim();
+  const result = rawResult.length > 0 ? rawResult : "validation completed with no output";
+
+  if (!response.ok) {
+    logError("daemon.tools", "validate rules failed", {
+      tool,
+      status: response.status,
+      output: result,
+    });
+    return result;
+  }
+  logDebug("daemon.tools", "validate rules result", {
+    tool,
+    status: response.status,
+    output: result,
+  });
+  return result;
+};
