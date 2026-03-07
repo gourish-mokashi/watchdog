@@ -18,7 +18,7 @@ model event {
   id         String   @id @default(uuid())
   sourceTool toolname 
   timestamp  DateTime @default(now())
-  severity   Float
+  priority   String
   description String
   rawPayload Json
   reportUrl   String

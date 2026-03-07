@@ -36,14 +36,12 @@ const parseRows = (value: unknown): number | null => {
 
 export const createEvent = async (req: Request, res: Response) => {
   try {
-    const { sourceTool, timestamp, severity, description, rawPayload } = req.body;
+    const { sourceTool, timestamp, priority, description, rawPayload } = req.body;
 
     if (!isValidToolName(sourceTool)) {
       return res.status(400).json({ error: "Invalid sourceTool" });
     }
-    if (typeof severity !== "number" || severity < 0 || severity > 1) {
-      return res.status(400).json({ error: "severity must be between 0 and 1" });
-    }
+
     if (typeof description !== "string" || description.trim().length === 0) {
       return res.status(400).json({ error: "description is required" });
     }
@@ -69,7 +67,7 @@ export const createEvent = async (req: Request, res: Response) => {
         where: { id: existing.id },
         data: {
           timestamp: parsedTimestamp,
-          severity: Math.max(existing.severity, severity),
+          priority: existing.priority,
           rawPayload,
           count: { increment: 1 },
         },
@@ -86,7 +84,7 @@ export const createEvent = async (req: Request, res: Response) => {
       data: {
         sourceTool,
         timestamp: parsedTimestamp,
-        severity,
+        priority,
         description: description.trim(),
         rawPayload,
         reportUrl: "",
@@ -135,7 +133,7 @@ export const getAllEvents = async (req: Request, res: Response) => {
         id: true,
         sourceTool: true,
         timestamp: true,
-        severity: true,
+        priority: true,
         description: true,
         reportUrl: true,
         count: true,
