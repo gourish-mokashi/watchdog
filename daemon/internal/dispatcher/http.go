@@ -52,7 +52,7 @@ func SendAlerts(alerts models.SecEvent, backendURL string) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
@@ -79,7 +79,7 @@ func SendRule(toolname string, markdownContents string, backendBaseURL string) e
 	req, _ := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func GenerateSummary(projectPath string, backendBaseURL string) (string, error) 
 		return "", err
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
