@@ -25,14 +25,14 @@ It is designed for teams and individuals who want to reduce alert fatigue, auto-
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                          Host / Infrastructure                          │
-│                                                                         │
-│   ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐           │
-│   │   Falco   │  │ Suricata  │  │   Wazuh   │  │   Zeek    │           │
-│   └─────┬─────┘  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘           │
-│         │               │               │               │               │
-│         └───────────────┼───────────────┼───────────────┘               │
-│                         ▼                                               │
+│                          Host / Infrastructure                           │
+│                                                                          │
+│           ┌───────────┐   ┌───────────┐                                  │
+│           │   Falco   │   │ Suricata  │                                  │
+│           └─────┬─────┘   └─────┬─────┘                                  │
+│                 │               │                                        │
+│                 └───────────────┘                                        │
+│                         ▼                                                │
 │                 ┌───────────────┐                                        │
 │                 │    Daemon     │  Go binary — receives alerts,          │
 │                 │  (Agent API)  │  exposes tool APIs for AI agents       │
@@ -42,15 +42,15 @@ It is designed for teams and individuals who want to reduce alert fatigue, auto-
                           │
                           ▼
                 ┌─────────────────┐     ┌──────────────┐
-                │     Server      │────▶│  PostgreSQL   │
+                │     Server      │────▶│  PostgreSQL  │
                 │  (Express API)  │     └──────────────┘
                 │                 │     ┌──────────────┐
-                │  AI Agents:     │────▶│    Redis      │
+                │  AI Agents:     │────▶│    Redis     │
                 │  • Threat       │     └──────────────┘
                 │    Analysis     │     ┌──────────────┐
-                │  • Rule Writer  │────▶│   AWS S3      │
-                │  • Project      │     │  (PDF reports)│
-                │    Summariser   │     └──────────────┘
+                │  • Rule Writer  │────▶│  PDF reports │
+                │  • Threat       │     └──────────────┘
+                │    Summarizer   │     
                 └────────┬────────┘
                          │
                          ▼
@@ -64,11 +64,11 @@ It is designed for teams and individuals who want to reduce alert fatigue, auto-
 ## Features
 
 - **Real-Time Alert Ingestion** — The daemon captures live alerts from Falco (with Suricata, Wazuh, and Zeek support planned) and forwards them to the server via HTTP.
-- **AI Threat Analysis** — An OpenAI Agents-powered SOC analyst triages each event, producing a structured verdict with confidence scores, evidence breakdown, and response recommendations.
+- **AI Threat Analysis** — An AI Agents-powered SOC analyst triages each event, producing a structured verdict with confidence scores, evidence breakdown, and response recommendations.
 - **PDF Report Generation** — Analysis results are rendered into professional PDF reports and stored in AWS S3 with pre-signed URL access.
-- **AI Rule Writer** — An agentic workflow reads your project summary, consults tool-specific rule-writing guides, and writes/validates/deploys custom detection rules directly on the host.
-- **Project Summariser** — An AI agent scans your codebase to produce a security-focused summary that powers context-aware rule writing and reduces false positives.
-- **Interactive TUI Installer** — A Charm-powered terminal UI for selecting and installing security tools (Falco, Suricata, Wazuh) on the host with a single command.
+- **AI Rule Writer** — An agentic workflow reads your threat summary, consults tool-specific rule-writing guides, and writes/validates/deploys custom detection rules directly on the host.
+- **Project Summariser** — An AI agent scans your codebase to produce a security-focused summary that powers context-aware rule writing and reduces false positives(Yet to be Added).
+- **Interactive TUI Installer** — A Charm-powered terminal UI for selecting and installing security tools (Falco, Suricata) on the host with a single command.
 - **Event Dashboard** — A Next.js web interface for browsing, filtering, and analysing security events with date-range filters, priority badges, and one-click threat analysis.
 - **Deduplication** — Repeated alerts of the same type are automatically deduplicated and counted rather than creating noise.
 - **Redis-Backed Agent Memory** — AI agent sessions are persisted in Redis for contextual continuity across analysis runs.
@@ -78,8 +78,8 @@ It is designed for teams and individuals who want to reduce alert fatigue, auto-
 | Layer | Technology |
 |---|---|
 | **Client** | Next.js 16, React 19, Tailwind CSS 4, Radix UI, PrismJS |
-| **Server** | Express 5, TypeScript, Prisma ORM (PostgreSQL), OpenAI Agents SDK, PDFKit |
-| **AI** | Ollama (local models), OpenAI Agents SDK, AI SDK (Anthropic/Groq/OpenAI/OpenRouter) |
+| **Server** | Express 5, TypeScript, Prisma ORM (PostgreSQL), PDFKit |
+| **AI** | Ollama (Cloud Models) |
 | **Daemon** | Go, Charm Bubbletea (TUI), net/http |
 | **Infrastructure** | PostgreSQL 17, Redis 8.4, AWS S3, Docker Compose |
 
@@ -90,8 +90,7 @@ It is designed for teams and individuals who want to reduce alert fatigue, auto-
 - **Node.js** ≥ 20 and **pnpm** ≥ 10
 - **Go** ≥ 1.22
 - **Docker** and **Docker Compose**
-- **Ollama** (for local model inference) — [Install Ollama](https://ollama.com/download)
-- An **AWS account** with S3 access (for report storage)
+- **Ollama** (for Cloud model inference) — [Install Ollama](https://ollama.com/download)
 
 ### 1. Clone the Repository
 
@@ -135,8 +134,8 @@ pnpm dev                      # starts on port 3000
 
 ```bash
 cd client
-pnpm install
-pnpm dev                      # starts on port 3001
+npm install
+npm run dev                      # starts on port 3001
 ```
 
 ### 5. Build and Run the Daemon
@@ -149,19 +148,19 @@ make build                    # builds to ./bin/watchdog
 **Initialize security tools (interactive TUI):**
 
 ```bash
-sudo ./bin/watchdog init
+export WATCHDOG_BACKEND_URL="http://localhost:3000"
+sudo --preserve-env=WATCHDOG_BACKEND_URL ./bin/watchdog init
 ```
 
 **Run the daemon:**
 
 ```bash
-export WATCHDOG_BACKEND_URL="http://localhost:3000"
 ./bin/watchdog
 ```
 
 The daemon exposes:
 - **Port 8080** — Agent API (file read/write/edit, rule validation, service restart)
-- **Port 8081** — Falco HTTP alert receiver
+- **Port 8081** — Falco, Suricata HTTP alert receiver
 
 ### 6. Pull the AI Model
 
@@ -185,7 +184,7 @@ watchdog/
 │   ├── cmd/daemon/            # Entry point
 │   ├── internal/
 │   │   ├── dispatcher/        # HTTP alert forwarding to server
-│   │   ├── installers/        # Falco, Suricata, Wazuh installers
+│   │   ├── installers/        # Falco, Suricata installers
 │   │   ├── reciever/          # Agent API (file ops, validation)
 │   │   └── ui/                # Charm Bubbletea TUI
 │   ├── pkg/models/            # Shared event model
@@ -199,8 +198,7 @@ watchdog/
     │       ├── watchdog.yaml  # Tool paths & commands
     │       ├── falco.md       # Falco rule-writing guide
     │       ├── suricata.md    # Suricata rule-writing guide
-    │       ├── wazuh.md       # Wazuh rule-writing guide
-    │       └── zeek.md        # Zeek rule-writing guide
+    │       
     └── src/
         ├── agents/            # AI agent definitions
         │   ├── threat-analysis.ts    # SOC analyst agent
