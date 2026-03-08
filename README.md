@@ -1,4 +1,4 @@
-<h1 align="center"><img src="client/public/favicon.ico" height="40" style="vertical-align: middle;" /> Watchdog</h1>
+<h1 align="center"><img src="client/public/assets/images/favicon.png" height="40" style="vertical-align: middle;" /> Watchdog</h1>
 
 <p align="center">
   <strong>AI-Powered Security Event Detection, Analysis & Response Platform</strong>
