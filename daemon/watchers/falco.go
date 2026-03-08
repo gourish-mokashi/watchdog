@@ -17,9 +17,10 @@ type FalcoPayload struct {
 	OutputFields map[string]interface{} `json:"output_fields"`
 }
 
-func StartFalcoHTTP(socketPath string, eventQueue chan<- models.SecEvent) {
+func StartFalcoHTTP(socketPath string, eventQueue chan<- models.SecEvent) error {
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/falco", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/falco", func(w http.ResponseWriter, r *http.Request) {
 		var payload FalcoPayload
 
 		fmt.Println("Recived Request from Falco")
@@ -47,10 +48,11 @@ func StartFalcoHTTP(socketPath string, eventQueue chan<- models.SecEvent) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	fmt.Printf("Connection to falco socket at %s", socketPath)
+	fmt.Printf("Connection to falco socket at %s\n", socketPath)
 
-	if err := http.ListenAndServe(":"+socketPath, nil); err != nil {
-		fmt.Printf("HTTP Server crashed: %v\n", err)
+	if err := http.ListenAndServe(":"+socketPath, mux); err != nil {
+		return fmt.Errorf("falco watcher server crashed: %w", err)
 	}
 
+	return nil
 }

@@ -37,7 +37,7 @@ Primary safety rule:
 
 When making a decision:
 1) Use event payload evidence first.
-2) Use project summary to understand expected behavior.
+2) Use project summary if exists to understand expected behavior.
 3) Use prior related event patterns for recurrence and context.
 4) Explicitly call out missing evidence.
 

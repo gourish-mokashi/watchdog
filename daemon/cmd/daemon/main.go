@@ -38,7 +38,12 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	go watchers.StartFalcoHTTP("8081", eventQueue)
+	go func() {
+		if err := watchers.StartFalcoHTTP("8081", eventQueue); err != nil {
+			fmt.Printf("Fatal error starting Falco watcher: %v\n", err)
+			os.Exit(1)
+		}
+	}()
 
 	go func() {
 		for alert := range eventQueue {

@@ -87,7 +87,7 @@ json_include_tags_property: true
 
 http_output:
   enabled: true
-  url: "http://localhost:8081/falco"
+  url: "http://127.0.0.1:8081/falco"
 `)
 
 	filePath := configDir + "/watchdog.yaml"

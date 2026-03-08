@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockEvents } from "../../mockData";
 
-const SERVER_URL = process.env.SERVER_URL;
+const getServerURL = (): string =>
+  process.env.SERVER_URL?.trim() || process.env.NEXT_PUBLIC_SERVER_URL?.trim() || "";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const serverURL = getServerURL();
 
   const mockEvent = mockEvents.find((event) => event.id === id);
 
-  if (!SERVER_URL) {
+  if (!serverURL) {
     if (!mockEvent) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
@@ -25,7 +27,7 @@ export async function GET(
 
   try {
     const res = await fetch(
-      `${SERVER_URL}/events/status/${encodeURIComponent(id)}`,
+      `${serverURL}/events/status/${encodeURIComponent(id)}`,
     );
 
     if (!res.ok) {

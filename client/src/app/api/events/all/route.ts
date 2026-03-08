@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockEvents } from "../mockData";
 
-const SERVER_URL = process.env.SERVER_URL;
+const getServerURL = (): string =>
+  process.env.SERVER_URL?.trim() || process.env.NEXT_PUBLIC_SERVER_URL?.trim() || "";
 
 const parseDate = (value: string | null): Date | null => {
   if (!value) return null;
@@ -46,13 +47,14 @@ const getMockEvents = (request: NextRequest) => {
 
 export async function GET(request: NextRequest) {
   const queryString = request.nextUrl.search;
+  const serverURL = getServerURL();
 
-  if (!SERVER_URL) {
+  if (!serverURL) {
     return NextResponse.json(getMockEvents(request));
   }
 
   try {
-    const res = await fetch(`${SERVER_URL}/events/all${queryString}`);
+    const res = await fetch(`${serverURL}/events/all${queryString}`);
 
     if (!res.ok) {
       const body = await res.text();
