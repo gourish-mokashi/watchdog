@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -42,24 +42,58 @@ export default function EventsAllPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const doFetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const doFetch = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const res = await fetch(`/api/events/all?${searchParams.toString()}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       setEvents(await res.json());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (showLoading) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [searchParams]);
 
   useEffect(() => {
-    doFetch();
-  }, [doFetch]);
+    void doFetch(true);
+  }, [doFetch, searchParams]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const hasPendingAnalysis = events.some((event) => event.askedAnalysis && !event.finished);
+    if (!hasPendingAnalysis) {
+      stopPolling();
+      return;
+    }
+
+    if (pollingRef.current) return;
+
+    pollingRef.current = setInterval(() => {
+      void doFetch(false);
+    }, 5000);
+
+    return stopPolling;
+  }, [events, loading, doFetch, stopPolling]);
+
+  useEffect(() => stopPolling, [stopPolling]);
 
   function applyFilters() {
     if (!range?.from || !range?.to) {

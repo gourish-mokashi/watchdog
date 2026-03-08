@@ -120,15 +120,18 @@ export const getAllEvents = async (req: Request, res: Response) => {
     const end = getSingleValue(req.query.end);
     const rows = getSingleValue(req.query.rows);
     const lf = getSingleValue(req.query.lf);
+    const of = getSingleValue(req.query.of);
 
     const parsedStart = start ? parseDate(start) : null;
     const parsedEnd = end ? parseDate(end) : null;
     const parsedRows = parseRows(rows);
-    const latestFirst = parseBool(lf) ?? true;
+    const oldestFirst = parseBool(of) ?? false;
+    const latestFirst = oldestFirst ? false : (parseBool(lf) ?? true);
     logDebug("event.all", "request", {
       start: start ?? null,
       end: end ?? null,
       rows: parsedRows ?? 100,
+      oldestFirst,
       latestFirst,
     });
 
@@ -156,6 +159,8 @@ export const getAllEvents = async (req: Request, res: Response) => {
         description: true,
         reportUrl: true,
         count: true,
+        askedAnalysis: true,
+        finished: true,
       },
     });
 
